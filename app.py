@@ -54,13 +54,7 @@ train_size = int(len(X) * 0.8)
 X_train, X_test = X[:train_size], X[train_size:]
 y_train, y_test = y[:train_size], y[train_size:]
 
-# 4. Load atau latih model
-if os.path.exists("model.h5"):
-    model = load_model("model.h5")
-else:
-    with st.spinner("🔄 Melatih model LSTM..."):
-        model = train_model(data_scaled, X_train, y_train)
-    st.success("✅ Model berhasil dilatih dan disimpan!")
+model = load_model("model.h5")
 
 # 5. Prediksi
 predicted = model.predict(X_test)
