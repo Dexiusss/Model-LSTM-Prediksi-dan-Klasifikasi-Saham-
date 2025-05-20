@@ -8,8 +8,8 @@ from sklearn.preprocessing import MinMaxScaler
 from tensorflow.keras.models import Sequential, load_model
 from tensorflow.keras.layers import Dense, LSTM, Dropout
 
-st.set_page_config(page_title="Prediksi Harga Saham AAPL", layout="wide")
-st.title("📈 Prediksi Harga Saham AAPL dengan LSTM")
+st.set_page_config(page_title="Prediksi Saham AAPL", layout="wide")
+st.title("📈 Dashboard Prediksi Saham AAPL dengan LSTM")
 
 @st.cache_data
 def load_data():
@@ -38,100 +38,88 @@ def create_dataset(dataset, time_step=60):
         y.append(dataset[i, 0])
     return np.array(X), np.array(y)
 
-# Load data
+# Load dan preprocessing
 df = load_data()
 scaler = MinMaxScaler(feature_range=(0, 1))
 data_scaled = scaler.fit_transform(df)
 
-# Info dataset
-st.subheader("📊 Informasi Dataset")
-col1, col2 = st.columns(2)
-col1.metric("Jumlah Data", len(df))
-col1.metric("Tanggal Awal", df.index.min().strftime('%Y-%m-%d'))
-col1.metric("Tanggal Akhir", df.index.max().strftime('%Y-%m-%d'))
-col2.dataframe(df.describe().T, use_container_width=True)
-
-# Slider prediksi
-n_days = st.slider("📅 Pilih jumlah hari ke depan untuk prediksi:", 1, 30, 7)
-
-# Date range selector untuk visualisasi (hanya untuk prediksi vs aktual)
-st.subheader("📅 Pilih Rentang Waktu untuk Visualisasi Prediksi vs Aktual")
-min_date = df.index.min().date()
-max_date = df.index.max().date()
-start_date = st.date_input("Tanggal mulai", min_value=min_date, max_value=max_date, value=min_date)
-end_date = st.date_input("Tanggal akhir", min_value=min_date, max_value=max_date, value=max_date)
-
-if start_date > end_date:
-    st.error("❌ Tanggal mulai harus sebelum tanggal akhir.")
-    st.stop()
-
-# Buat dataset
+# Dataset
 X, y = create_dataset(data_scaled, 60)
 X = X.reshape(X.shape[0], X.shape[1], 1)
-
-# Split
 train_size = int(len(X) * 0.8)
 X_train, X_test = X[:train_size], X[train_size:]
 y_train, y_test = y[:train_size], y[train_size:]
 
-# Load atau latih model
+# Model
 if os.path.exists("model.h5"):
     model = load_model("model.h5")
 else:
-    with st.spinner("🔄 Melatih model LSTM..."):
+    with st.spinner("🔄 Melatih model..."):
         model = train_model(X_train, y_train)
-    st.success("✅ Model berhasil dilatih dan disimpan!")
 
-# Prediksi terhadap data test
+# Prediksi test
 predicted = model.predict(X_test)
-predicted_prices = scaler.inverse_transform(predicted.reshape(-1, 1))
+predicted_prices = scaler.inverse_transform(predicted)
 real_prices = scaler.inverse_transform(y_test.reshape(-1, 1))
 
-# Prediksi masa depan
-last_sequence = data_scaled[-60:]
-future_input = last_sequence.reshape(1, 60, 1)
-future_predictions = []
-
-for _ in range(n_days):
-    next_pred = model.predict(future_input)[0][0]
-    future_predictions.append(next_pred)
-    future_input = np.append(future_input[:, 1:, :], [[[next_pred]]], axis=1)
-
-future_prices = scaler.inverse_transform(np.array(future_predictions).reshape(-1, 1))
-
-# --- Filter data untuk visualisasi prediksi vs aktual berdasarkan rentang waktu ---
-date_test_start_idx = train_size + 60
+# Plot 1: Prediksi vs Aktual
+st.subheader("📌 Visualisasi Data Aktual vs Prediksi (Statis)")
 dates_all = df.index[60:]
 dates_test = dates_all[train_size:]
-mask = (dates_test.date >= start_date) & (dates_test.date <= end_date)
-dates_filtered = dates_test[mask]
-real_filtered = real_prices[mask]
-predicted_filtered = predicted_prices[mask]
 
-# Visualisasi 1: Prediksi vs Aktual pada data test (periode pilihan)
-st.subheader("📉 Visualisasi Prediksi vs Aktual (Data Test)")
 fig1, ax1 = plt.subplots(figsize=(14, 6))
-ax1.plot(dates_filtered, real_filtered, label='Harga Aktual (Test)', color='royalblue', linewidth=2)
-ax1.plot(dates_filtered, predicted_filtered, label='Prediksi LSTM (Test)', color='tomato', linestyle='--', linewidth=2)
-ax1.set_title("Prediksi Harga Saham AAPL - Data Test", fontsize=16)
+ax1.plot(dates_test, real_prices, label='Aktual', color='dodgerblue')
+ax1.plot(dates_test, predicted_prices, label='Prediksi', color='tomato')
+ax1.set_title("Prediksi vs Aktual pada Data Test", fontsize=16)
 ax1.set_xlabel("Tanggal")
 ax1.set_ylabel("Harga (USD)")
 ax1.legend()
 ax1.grid(True)
 st.pyplot(fig1)
 
-# Visualisasi 2: Prediksi masa depan (forecast n hari)
-st.subheader(f"🔮 Visualisasi Prediksi Masa Depan {n_days} Hari ke Depan")
-fig2, ax2 = plt.subplots(figsize=(14, 6))
+# Plot 2: Visualisasi data aktual historis
+st.subheader("📂 Visualisasi Data Historis (Hanya Data Aktual)")
 
-# Gunakan tanggal mulai prediksi dari hari terakhir data asli (max tanggal df)
-last_date = df.index.max()
-future_dates = pd.date_range(start=last_date + pd.Timedelta(days=1), periods=n_days)
+min_date = df.index.min().date()
+max_date = df.index.max().date()
+col1, col2 = st.columns(2)
+start_date_hist = col1.date_input("Tanggal Mulai", min_value=min_date, max_value=max_date, value=min_date)
+end_date_hist = col2.date_input("Tanggal Akhir", min_value=min_date, max_value=max_date, value=max_date)
 
-ax2.plot(future_dates, future_prices, label=f'Prediksi {n_days} Hari ke Depan', color='green', linestyle='dashdot', linewidth=2)
-ax2.set_title(f"Prediksi Harga Saham AAPL {n_days} Hari ke Depan", fontsize=16)
-ax2.set_xlabel("Tanggal")
-ax2.set_ylabel("Harga (USD)")
-ax2.legend()
-ax2.grid(True)
-st.pyplot(fig2)
+if start_date_hist > end_date_hist:
+    st.error("❌ Tanggal mulai harus sebelum tanggal akhir.")
+else:
+    df_filtered = df.loc[start_date_hist:end_date_hist]
+    fig2, ax2 = plt.subplots(figsize=(14, 6))
+    ax2.plot(df_filtered.index, df_filtered['Close'], color='seagreen')
+    ax2.set_title(f"Data Historis Saham AAPL ({start_date_hist} s.d. {end_date_hist})", fontsize=16)
+    ax2.set_xlabel("Tanggal")
+    ax2.set_ylabel("Harga (USD)")
+    ax2.grid(True)
+    st.pyplot(fig2)
+
+# Plot 3: Prediksi masa depan (1-3 bulan)
+st.subheader("🔮 Prediksi Saham Masa Depan (1 - 3 Bulan)")
+n_days = st.slider("Pilih jumlah hari ke depan untuk prediksi:", 30, 90, 60)
+
+# Generate prediksi masa depan
+last_sequence = data_scaled[-60:]
+future_input = last_sequence.reshape(1, 60, 1)
+future_preds = []
+
+for _ in range(n_days):
+    next_val = model.predict(future_input)[0][0]
+    future_preds.append(next_val)
+    future_input = np.append(future_input[:, 1:, :], [[[next_val]]], axis=1)
+
+future_prices = scaler.inverse_transform(np.array(future_preds).reshape(-1, 1))
+future_dates = pd.date_range(start=df.index.max() + pd.Timedelta(days=1), periods=n_days)
+
+fig3, ax3 = plt.subplots(figsize=(14, 6))
+ax3.plot(future_dates, future_prices, label=f"Prediksi {n_days} Hari", color='purple')
+ax3.set_title(f"Prediksi Harga Saham AAPL untuk {n_days} Hari ke Depan", fontsize=16)
+ax3.set_xlabel("Tanggal")
+ax3.set_ylabel("Harga (USD)")
+ax3.grid(True)
+ax3.legend()
+st.pyplot(fig3)
