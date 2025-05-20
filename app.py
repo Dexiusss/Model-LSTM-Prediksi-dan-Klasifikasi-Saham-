@@ -68,7 +68,7 @@ predicted_prices = scaler.inverse_transform(predicted)
 real_prices = scaler.inverse_transform(y_test.reshape(-1, 1))
 
 # Plot 1: Prediksi vs Aktual
-st.subheader("📌 Visualisasi Data Aktual vs Prediksi (Statis)")
+st.subheader("📌 Visualisasi Akurasi Model Prediksi")
 dates_all = df.index[60:]
 dates_test = dates_all[train_size:]
 
