@@ -15,8 +15,8 @@ st.title("📈 Dashboard Prediksi Saham AAPL")
 
 
 # Install dependencies
-!pip install yfinance
-!pip install tensorflow scikit-learn
+#!pip install yfinance
+#!pip install tensorflow scikit-learn
 
 import yfinance as yf
 import numpy as np
