@@ -9,5 +9,5 @@ Aplikasi prediksi harga saham AAPL menggunakan LSTM dan Streamlit sebagai visual
 
 ## 🔧 Cara Pakai
 1. jalankan code app.py
-2. apabila belum dilatih maka akan menghasilkan folder baru sebagai model.py
+2. apabila belum dilatih maka akan menghasilkan folder baru sebagai model.h5
 3. run app di streamlit
