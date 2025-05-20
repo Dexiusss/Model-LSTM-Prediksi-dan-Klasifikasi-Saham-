@@ -82,7 +82,7 @@ ax1.set_xlabel("Tanggal", color='white')
 ax1.set_ylabel("Harga (USD)", color='white')
 ax1.tick_params(axis='x', colors='white')
 ax1.tick_params(axis='y', colors='white')
-ax1.legend(facecolor='#161b22', edgecolor='white')
+ax1.legend(facecolor='#161b22', edgecolor='white', labelcolor='white')
 ax1.grid(True, linestyle='--', alpha=0.3)
 for spine in ax1.spines.values():
     spine.set_edgecolor('white')
@@ -155,7 +155,7 @@ if n_days and n_days > 0:
     ax3.tick_params(axis='x', colors='white')
     ax3.tick_params(axis='y', colors='white')
     ax3.grid(True, linestyle='--', alpha=0.3)
-    ax3.legend(facecolor='#161b22', edgecolor='white')
+    ax3.legend(facecolor='#161b22', edgecolor='white', labelcolor='white')
     for spine in ax3.spines.values():
         spine.set_edgecolor('white')
     st.pyplot(fig3)
