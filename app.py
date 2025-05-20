@@ -73,13 +73,19 @@ dates_all = df.index[60:]
 dates_test = dates_all[train_size:]
 
 fig1, ax1 = plt.subplots(figsize=(14, 6))
-ax1.plot(dates_test, real_prices, label='Aktual', color='dodgerblue')
-ax1.plot(dates_test, predicted_prices, label='Prediksi', color='tomato')
-ax1.set_title("Prediksi vs Aktual pada Data Test", fontsize=16)
-ax1.set_xlabel("Tanggal")
-ax1.set_ylabel("Harga (USD)")
-ax1.legend()
-ax1.grid(True)
+fig1.patch.set_facecolor('#0d1117')
+ax1.set_facecolor('#0d1117')
+ax1.plot(dates_test, real_prices, label='Aktual', color='#58a6ff', linewidth=2.5)
+ax1.plot(dates_test, predicted_prices, label='Prediksi', color='#f778ba', linestyle='--', linewidth=2.5)
+ax1.set_title("Prediksi vs Aktual pada Data Test", fontsize=16, color='white')
+ax1.set_xlabel("Tanggal", color='white')
+ax1.set_ylabel("Harga (USD)", color='white')
+ax1.tick_params(axis='x', colors='white')
+ax1.tick_params(axis='y', colors='white')
+ax1.legend(facecolor='#161b22', edgecolor='white')
+ax1.grid(True, linestyle='--', alpha=0.3)
+for spine in ax1.spines.values():
+    spine.set_edgecolor('white')
 st.pyplot(fig1)
 
 # Plot 2: Visualisasi Data Historis
@@ -96,11 +102,17 @@ if start_date_hist > end_date_hist:
 else:
     df_filtered = df.loc[start_date_hist:end_date_hist]
     fig2, ax2 = plt.subplots(figsize=(14, 6))
-    ax2.plot(df_filtered.index, df_filtered['Close'], color='seagreen')
-    ax2.set_title(f"Data Historis Saham AAPL ({start_date_hist} s.d. {end_date_hist})", fontsize=16)
-    ax2.set_xlabel("Tanggal")
-    ax2.set_ylabel("Harga (USD)")
-    ax2.grid(True)
+    fig2.patch.set_facecolor('#0d1117')
+    ax2.set_facecolor('#0d1117')
+    ax2.plot(df_filtered.index, df_filtered['Close'], color='#00ff9f', linewidth=2.5)
+    ax2.set_title(f"Data Historis Saham AAPL ({start_date_hist} s.d. {end_date_hist})", fontsize=16, color='white')
+    ax2.set_xlabel("Tanggal", color='white')
+    ax2.set_ylabel("Harga (USD)", color='white')
+    ax2.tick_params(axis='x', colors='white')
+    ax2.tick_params(axis='y', colors='white')
+    ax2.grid(True, linestyle='--', alpha=0.3)
+    for spine in ax2.spines.values():
+        spine.set_edgecolor('white')
     st.pyplot(fig2)
 
 # Plot 3: Prediksi Masa Depan
@@ -114,12 +126,11 @@ elif pred_mode == "Gunakan Tanggal Awal & Akhir":
     col3, col4 = st.columns(2)
     start_pred = col3.date_input("Tanggal Awal Prediksi", min_value=max_date + pd.Timedelta(days=1))
     end_pred = col4.date_input("Tanggal Akhir Prediksi", min_value=start_pred)
-    n_days = (end_pred - start_pred).days + 1  # Tambah 1 agar inklusif
+    n_days = (end_pred - start_pred).days + 1
     if n_days <= 0:
         st.error("❌ Rentang prediksi tidak valid.")
         n_days = None
 
-# Lanjutkan jika n_days valid
 if n_days and n_days > 0:
     last_sequence = data_scaled[-60:]
     future_input = last_sequence.reshape(1, 60, 1)
@@ -135,10 +146,16 @@ if n_days and n_days > 0:
     future_dates = pd.date_range(start=start_date, periods=n_days)
 
     fig3, ax3 = plt.subplots(figsize=(14, 6))
-    ax3.plot(future_dates, future_prices, label=f"Prediksi {n_days} Hari", color='purple')
-    ax3.set_title(f"Prediksi Harga Saham AAPL ({future_dates[0].date()} s.d. {future_dates[-1].date()})", fontsize=16)
-    ax3.set_xlabel("Tanggal")
-    ax3.set_ylabel("Harga (USD)")
-    ax3.grid(True)
-    ax3.legend()
+    fig3.patch.set_facecolor('#0d1117')
+    ax3.set_facecolor('#0d1117')
+    ax3.plot(future_dates, future_prices, label=f"Prediksi {n_days} Hari", color='#bb86fc', linewidth=2.5)
+    ax3.set_title(f"Prediksi Harga Saham AAPL ({future_dates[0].date()} s.d. {future_dates[-1].date()})", fontsize=16, color='white')
+    ax3.set_xlabel("Tanggal", color='white')
+    ax3.set_ylabel("Harga (USD)", color='white')
+    ax3.tick_params(axis='x', colors='white')
+    ax3.tick_params(axis='y', colors='white')
+    ax3.grid(True, linestyle='--', alpha=0.3)
+    ax3.legend(facecolor='#161b22', edgecolor='white')
+    for spine in ax3.spines.values():
+        spine.set_edgecolor('white')
     st.pyplot(fig3)
