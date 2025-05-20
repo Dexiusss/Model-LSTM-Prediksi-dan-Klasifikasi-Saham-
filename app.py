@@ -1,76 +1,77 @@
 import streamlit as st
-import yfinance as yf
-import pandas as pd
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
-from tensorflow.keras.models import load_model
+import os
+import yfinance as yf
 from sklearn.preprocessing import MinMaxScaler
-from datetime import date, timedelta
+from tensorflow.keras.models import Sequential, load_model
+from tensorflow.keras.layers import Dense, LSTM, Dropout
 
-# Title
-st.set_page_config(page_title="Prediksi Saham dengan LSTM", layout="wide")
-st.title("📈 Prediksi Harga Saham Menggunakan LSTM")
+st.set_page_config(layout="wide")
+st.title("📊 Prediksi Harga Saham AAPL dengan LSTM")
 
-# Sidebar
-st.sidebar.header("🔍 Pilih Parameter")
-ticker = st.sidebar.text_input("Masukkan Kode Saham (contoh: AAPL, GOTO.JK)", value="AAPL")
-start_date = st.sidebar.date_input("Tanggal Mulai", value=date(2015, 1, 1))
-end_date = st.sidebar.date_input("Tanggal Akhir", value=date.today())
-n_days_predict = st.sidebar.slider("Hari yang Diprediksi", 1, 30, 7)
-
-# Ambil data saham
 @st.cache_data
-def load_data(ticker):
-    df = yf.download(ticker, start=start_date, end=end_date)
-    return df
+def load_data():
+    df = yf.download('AAPL', start='2015-01-01', end='2024-12-31')
+    df.dropna(inplace=True)
+    df.drop_duplicates(inplace=True)
+    return df[['Close']]
 
-data_load_state = st.text('Mengambil data...')
-data = load_data(ticker)
-data_load_state.text('✅ Data berhasil dimuat!')
+@st.cache_resource
+def train_model(data_scaled, X_train, y_train, X_test, y_test):
+    model = Sequential()
+    model.add(LSTM(50, return_sequences=True, input_shape=(X_train.shape[1], 1)))
+    model.add(Dropout(0.2))
+    model.add(LSTM(50, return_sequences=False))
+    model.add(Dropout(0.2))
+    model.add(Dense(1))
 
-# Tampilkan data mentah
-with st.expander("📊 Lihat Data Mentah"):
-    st.write(data.tail())
+    model.compile(optimizer='adam', loss='mean_squared_error')
+    model.fit(X_train, y_train, epochs=20, batch_size=32, verbose=0)
+    model.save("model.h5")
+    return model
 
-# Visualisasi harga historis
-st.subheader("📉 Grafik Harga Saham Historis")
-fig, ax = plt.subplots(figsize=(10, 4))
-ax.plot(data['Close'], label='Harga Penutupan', color='blue')
-ax.set_xlabel("Tanggal")
-ax.set_ylabel("Harga ($)")
-ax.legend()
-st.pyplot(fig)
+def create_dataset(dataset, time_step=60):
+    X, y = [], []
+    for i in range(time_step, len(dataset)):
+        X.append(dataset[i-time_step:i, 0])
+        y.append(dataset[i, 0])
+    return np.array(X), np.array(y)
 
-# Preprocessing
-data_training = data[['Close']].values
-scaler = MinMaxScaler()
-data_scaled = scaler.fit_transform(data_training)
+# Load data
+df = load_data()
+scaler = MinMaxScaler(feature_range=(0, 1))
+data_scaled = scaler.fit_transform(df)
 
-X = []
-y = []
-n_past = 60  # LSTM butuh data masa lalu
+# Dataset untuk LSTM
+X, y = create_dataset(data_scaled, 60)
+X = X.reshape(X.shape[0], X.shape[1], 1)
+train_size = int(len(X) * 0.8)
+X_train, X_test = X[:train_size], X[train_size:]
+y_train, y_test = y[:train_size], y[train_size:]
 
-for i in range(n_past, len(data_scaled)):
-    X.append(data_scaled[i - n_past:i, 0])
-    y.append(data_scaled[i, 0])
-
-X, y = np.array(X), np.array(y)
-X = X.reshape((X.shape[0], X.shape[1], 1))
-
-# Load model
-model = load_model("model_lstm.h5")
+# Load / Train model
+if os.path.exists("model.h5"):
+    model = load_model("model.h5")
+else:
+    with st.spinner("🔄 Melatih model LSTM..."):
+        model = train_model(data_scaled, X_train, y_train, X_test, y_test)
+    st.success("✅ Model berhasil dilatih dan disimpan!")
 
 # Prediksi
-predicted = model.predict(X)
-predicted_prices = scaler.inverse_transform(predicted)
+predicted = model.predict(X_test)
+predicted_prices = scaler.inverse_transform(predicted.reshape(-1, 1))
+real_prices = scaler.inverse_transform(y_test.reshape(-1, 1))
 
-# Visualisasi hasil prediksi
-st.subheader("🔮 Prediksi vs Aktual")
-fig2, ax2 = plt.subplots(figsize=(10, 4))
-ax2.plot(data.index[n_past:], data['Close'].values[n_past:], label='Harga Aktual', color='black')
-ax2.plot(data.index[n_past:], predicted_prices, label='Prediksi LSTM', color='green')
-ax2.legend()
-st.pyplot(fig2)
-
-st.markdown("---")
-st.caption("Dibuat oleh Ibet – Tugas Akhir | 2025")
+# Plot
+st.subheader("📈 Visualisasi Prediksi Harga Saham")
+fig, ax = plt.subplots(figsize=(12, 6))
+ax.plot(real_prices, label='Harga Aktual', color='royalblue')
+ax.plot(predicted_prices, label='Prediksi LSTM', color='tomato', linestyle='--')
+ax.set_xlabel("Hari")
+ax.set_ylabel("Harga ($)")
+ax.set_title("Prediksi Harga Saham AAPL vs Aktual")
+ax.legend()
+ax.grid(True)
+st.pyplot(fig)
