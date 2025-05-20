@@ -54,8 +54,8 @@ col2.dataframe(df.describe().T, use_container_width=True)
 # Slider prediksi
 n_days = st.slider("📅 Pilih jumlah hari ke depan untuk prediksi:", 1, 30, 7)
 
-# Date range selector untuk visualisasi (batas antara tanggal data)
-st.subheader("📅 Pilih Rentang Waktu untuk Visualisasi")
+# Date range selector untuk visualisasi (hanya untuk prediksi vs aktual)
+st.subheader("📅 Pilih Rentang Waktu untuk Visualisasi Prediksi vs Aktual")
 min_date = df.index.min().date()
 max_date = df.index.max().date()
 start_date = st.date_input("Tanggal mulai", min_value=min_date, max_value=max_date, value=min_date)
@@ -99,37 +99,39 @@ for _ in range(n_days):
 
 future_prices = scaler.inverse_transform(np.array(future_predictions).reshape(-1, 1))
 
-# --- Filter data untuk visualisasi berdasarkan rentang waktu ---
-# Karena data prediksi test dan real sudah dalam numpy array, kita perlu pasang index tanggal
-# Indeks tanggal mulai dari test set (setelah train_size + 60 karena time_step=60)
-date_test_start_idx = train_size + 60  # Karena create_dataset start dari index ke-60
-dates_all = df.index[60:]  # Karena target y mulai dari index 60
-
-dates_test = dates_all[train_size:]  # tanggal yang terkait data test
-
-# Filter tanggal test sesuai input user
+# --- Filter data untuk visualisasi prediksi vs aktual berdasarkan rentang waktu ---
+date_test_start_idx = train_size + 60
+dates_all = df.index[60:]
+dates_test = dates_all[train_size:]
 mask = (dates_test.date >= start_date) & (dates_test.date <= end_date)
 dates_filtered = dates_test[mask]
 real_filtered = real_prices[mask]
 predicted_filtered = predicted_prices[mask]
 
-# Visualisasi
-st.subheader("📉 Visualisasi Prediksi vs Aktual")
+# Visualisasi 1: Prediksi vs Aktual pada data test (periode pilihan)
+st.subheader("📉 Visualisasi Prediksi vs Aktual (Data Test)")
+fig1, ax1 = plt.subplots(figsize=(14, 6))
+ax1.plot(dates_filtered, real_filtered, label='Harga Aktual (Test)', color='royalblue', linewidth=2)
+ax1.plot(dates_filtered, predicted_filtered, label='Prediksi LSTM (Test)', color='tomato', linestyle='--', linewidth=2)
+ax1.set_title("Prediksi Harga Saham AAPL - Data Test", fontsize=16)
+ax1.set_xlabel("Tanggal")
+ax1.set_ylabel("Harga (USD)")
+ax1.legend()
+ax1.grid(True)
+st.pyplot(fig1)
 
-fig, ax = plt.subplots(figsize=(14, 6))
+# Visualisasi 2: Prediksi masa depan (forecast n hari)
+st.subheader(f"🔮 Visualisasi Prediksi Masa Depan {n_days} Hari ke Depan")
+fig2, ax2 = plt.subplots(figsize=(14, 6))
 
-ax.plot(dates_filtered, real_filtered, label='Harga Aktual (Test)', color='royalblue', linewidth=2)
-ax.plot(dates_filtered, predicted_filtered, label='Prediksi LSTM (Test)', color='tomato', linestyle='--', linewidth=2)
-
-# Prediksi masa depan pakai tanggal berurutan mulai dari tanggal akhir visualisasi
-last_date = dates_filtered.max() if len(dates_filtered) > 0 else dates_test.max()
+# Gunakan tanggal mulai prediksi dari hari terakhir data asli (max tanggal df)
+last_date = df.index.max()
 future_dates = pd.date_range(start=last_date + pd.Timedelta(days=1), periods=n_days)
 
-ax.plot(future_dates, future_prices, label=f'Prediksi {n_days} Hari ke Depan', color='green', linestyle='dashdot', linewidth=2)
-
-ax.set_title("Prediksi Harga Saham AAPL", fontsize=16)
-ax.set_xlabel("Tanggal")
-ax.set_ylabel("Harga (USD)")
-ax.legend()
-ax.grid(True)
-st.pyplot(fig)
+ax2.plot(future_dates, future_prices, label=f'Prediksi {n_days} Hari ke Depan', color='green', linestyle='dashdot', linewidth=2)
+ax2.set_title(f"Prediksi Harga Saham AAPL {n_days} Hari ke Depan", fontsize=16)
+ax2.set_xlabel("Tanggal")
+ax2.set_ylabel("Harga (USD)")
+ax2.legend()
+ax2.grid(True)
+st.pyplot(fig2)
