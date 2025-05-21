@@ -13,4 +13,4 @@ Aplikasi prediksi harga saham AAPL menggunakan LSTM dan Streamlit sebagai visual
 3. run app di streamlit
 
 ## 📜 Link Dashboard
-- https://project-kuliah-knyaxb37sktnnhjnl4zbue.streamlit.app/?embed_options=dark_theme
+- https://9cusuwhjjwnd4hx3slfe9n.streamlit.app/?embed_options=dark_theme
