@@ -12,11 +12,6 @@ from tensorflow.keras.layers import Dense, LSTM, Dropout
 # ---------- Page Config ----------
 st.set_page_config(page_title="Prediksi Saham AAPL", layout="wide")
 
-st.markdown(
-    "<h1 style='text-align: center; color: white;'>📈 Dashboard Prediksi Saham AAPL dengan LSTM</h1><br><br>",
-    unsafe_allow_html=True,
-)
-
 # ---------- Load & Cache Data ----------
 @st.cache_data
 def load_data():
@@ -82,26 +77,40 @@ predicted_prices = scaler.inverse_transform(predicted)
 real_prices = scaler.inverse_transform(y_test.reshape(-1, 1))
 
 # ---------- Fungsi Visualisasi ----------
+
 def visualize_historical_data(df):
+    st.markdown(
+        "<div style='border: 2px solid #00ff9f; padding: 15px; border-radius: 15px; margin-bottom: 20px; background-color: #161b22;'>"
+        "<h2 style='color: white; text-align: center;'>📂 Visualisasi Data Historis</h2>",
+        unsafe_allow_html=True
+    )
     col4, col5 = st.columns(2)
     start_date_hist = col4.date_input("Tanggal Mulai", min_value=df.index.min().date(), max_value=df.index.max().date(), value=df.index.min().date())
     end_date_hist = col5.date_input("Tanggal Akhir", min_value=df.index.min().date(), max_value=df.index.max().date(), value=df.index.max().date())
     if start_date_hist > end_date_hist:
         st.error("❌ Tanggal mulai harus sebelum tanggal akhir.")
-        return
-    df_filtered = df.loc[start_date_hist:end_date_hist]
-    fig2, ax2 = plt.subplots(figsize=(14, 5))
-    fig2.patch.set_facecolor('#0d1117')
-    ax2.set_facecolor('#0d1117')
-    ax2.plot(df_filtered.index, df_filtered['Close'], color='#00ff9f')
-    ax2.set_title(f"Data Historis Saham AAPL ({start_date_hist} s.d. {end_date_hist})", color='white')
-    ax2.tick_params(colors='white')
-    for spine in ax2.spines.values():
-        spine.set_edgecolor('white')
-    st.pyplot(fig2)
+    else:
+        df_filtered = df.loc[start_date_hist:end_date_hist]
+        fig2, ax2 = plt.subplots(figsize=(14, 5))
+        fig2.patch.set_facecolor('#0d1117')
+        ax2.set_facecolor('#0d1117')
+        ax2.plot(df_filtered.index, df_filtered['Close'], color='#00ff9f')
+        ax2.set_title(f"Data Historis Saham AAPL ({start_date_hist} s.d. {end_date_hist})", color='white')
+        ax2.tick_params(colors='white')
+        for spine in ax2.spines.values():
+            spine.set_edgecolor('white')
+        st.pyplot(fig2)
+    st.markdown("</div>", unsafe_allow_html=True)
 
 def predict_and_visualize_future_prices(model, data_scaled, scaler, df):
+    st.markdown(
+        "<div style='border: 2px solid #bb86fc; padding: 15px; border-radius: 15px; margin-bottom: 20px; background-color: #161b22;'>"
+        "<h2 style='color: white; text-align: center;'>🧙‍♂️ Prediksi Saham Masa Depan</h2>",
+        unsafe_allow_html=True
+    )
+
     mode = st.radio("Pilih mode prediksi:", ["Gunakan Slider Hari", "Gunakan Tanggal Spesifik"])
+
     if mode == "Gunakan Slider Hari":
         n_days = st.slider("Pilih jumlah hari ke depan untuk prediksi:", 30, 90, 60)
         start_date = df.index.max() + pd.Timedelta(days=1)
@@ -115,15 +124,19 @@ def predict_and_visualize_future_prices(model, data_scaled, scaler, df):
             st.error("❌ Tanggal mulai prediksi harus sebelum tanggal akhir.")
             st.stop()
         n_days = (end_date - start_date).days + 1
+
     last_sequence = data_scaled[-60:]
     future_input = last_sequence.reshape(1, 60, 1)
     future_preds = []
+
     for _ in range(n_days):
         next_val = model.predict(future_input, verbose=0)[0][0]
         future_preds.append(next_val)
         future_input = np.append(future_input[:, 1:, :], [[[next_val]]], axis=1)
+
     future_prices = scaler.inverse_transform(np.array(future_preds).reshape(-1, 1))
     future_dates = pd.date_range(start=start_date, periods=n_days)
+
     fig3, ax3 = plt.subplots(figsize=(14, 5))
     fig3.patch.set_facecolor('#0d1117')
     ax3.set_facecolor('#0d1117')
@@ -134,14 +147,24 @@ def predict_and_visualize_future_prices(model, data_scaled, scaler, df):
     for spine in ax3.spines.values():
         spine.set_edgecolor('white')
     st.pyplot(fig3)
+    st.markdown("</div>", unsafe_allow_html=True)
+
     return future_prices
 
 def visualize_classification(future_prices):
+    st.markdown(
+        "<div style='border: 2px solid #00ffff; padding: 15px; border-radius: 15px; background-color: #161b22;'>"
+        "<h2 style='color: white; text-align: center;'>📊 Persentase Klasifikasi pada Rentang Waktu Dipilih</h2>",
+        unsafe_allow_html=True
+    )
+
     trend_stats = calculate_classification_stats(future_prices.flatten())
+    
     labels = ['Buy', 'Hold', 'Sell']
     sizes = [trend_stats.get(label, 0) for label in labels]
     colors = ['#4caf50', '#ffeb3b', '#f44336']
     explode = (0.1, 0, 0)  # highlight "Buy" sedikit keluar
+
     fig4, ax4 = plt.subplots(figsize=(6, 6), facecolor='#161b22')
     ax4.pie(
         sizes, labels=labels, autopct='%1.1f%%', startangle=140,
@@ -149,6 +172,7 @@ def visualize_classification(future_prices):
     )
     ax4.set_title("📌 Presentase Klasifikasi di Prediksi Waktu yang Dipilih", color='white', fontsize=16)
     st.pyplot(fig4)
+    st.markdown("</div>", unsafe_allow_html=True)
 
 # ---------- Sidebar Navigasi ----------
 st.sidebar.title("📚 Navigasi")
@@ -156,32 +180,29 @@ page = st.sidebar.radio("Pilih Halaman:", [
     "Dataset",
     "Visualisasi Historis",
     "Evaluasi Model",
-    "Prediksi Harga",
-    "Klasifikasi Tren",
+    "Prediksi dan Klasifikasi",
     "Tentang Model"
 ])
 
 # ---------- Konten Per Halaman ----------
+st.markdown("<h1 style='text-align: center; color: white;'>📈 Dashboard Prediksi Saham AAPL dengan LSTM</h1><br><br>", unsafe_allow_html=True)
+
 if page == "Dataset":
     st.markdown(
         "<div style='border: 2px solid #58a6ff; padding: 15px; border-radius: 15px; background-color: #161b22;'>"
-        "<h3 style='color: white;'>Dataset Saham AAPL</h3></div>",
+        "<h3 style='color: white;'>Dataset</h3>",
         unsafe_allow_html=True
     )
-    st.dataframe(df.head(20))
+    st.dataframe(df.head())
+    st.markdown("</div>", unsafe_allow_html=True)
 
 elif page == "Visualisasi Historis":
-    st.markdown(
-        "<div style='border: 2px solid #00ff9f; padding: 15px; border-radius: 15px; background-color: #161b22;'>"
-        "<h3 style='color: white; text-align: center;'>Visualisasi Data Historis</h3></div>",
-        unsafe_allow_html=True
-    )
     visualize_historical_data(df)
 
 elif page == "Evaluasi Model":
     st.markdown(
         "<div style='border: 2px solid #f778ba; padding: 15px; border-radius: 15px; background-color: #161b22;'>"
-        "<h3 style='color: white;'>Evaluasi Akurasi Prediksi</h3></div>",
+        "<h3 style='color: white;'>Akurasi Prediksi</h3>",
         unsafe_allow_html=True
     )
     mse = mean_squared_error(real_prices, predicted_prices)
@@ -193,55 +214,28 @@ elif page == "Evaluasi Model":
         "Nilai": [f"{mse:.4f}", f"{rmse:.4f}", f"{mae:.4f}", f"{r2:.4f}"]
     })
     st.table(eval_df)
+    st.markdown("</div>", unsafe_allow_html=True)
 
-    fig1, ax1 = plt.subplots(figsize=(14, 5))
-    fig1.patch.set_facecolor('#0d1117')
-    ax1.set_facecolor('#0d1117')
-    dates_all = df.index[60:]
-    dates_test = dates_all[train_size:]
-    ax1.plot(dates_test, real_prices, label='Aktual', color='#58a6ff')
-    ax1.plot(dates_test, predicted_prices, label='Prediksi', color='#f778ba', linestyle='--')
-    ax1.set_title("Prediksi vs Aktual pada Data Test", color='white')
-    ax1.tick_params(colors='white')
-    ax1.legend(facecolor='#161b22', edgecolor='white', labelcolor='white')
-    for spine in ax1.spines.values():
-        spine.set_edgecolor('white')
-    st.pyplot(fig1)
-
-elif page == "Prediksi Harga":
+elif page == "Prediksi dan Klasifikasi":
     st.markdown(
         "<div style='border: 2px solid #bb86fc; padding: 15px; border-radius: 15px; background-color: #161b22;'>"
-        "<h3 style='color: white; text-align: center;'>Prediksi Harga Saham Masa Depan</h3></div>",
+        "<h3 style='color: white; text-align: center;'>Prediksi Harga Saham dan Klasifikasi Tren Masa Depan</h3></div>",
         unsafe_allow_html=True
     )
     future_prices = predict_and_visualize_future_prices(model, data_scaled, scaler, df)
-    # Simpan ke session state supaya klasifikasi bisa dipakai nanti
-    st.session_state['future_prices'] = future_prices
-
-elif page == "Klasifikasi Tren":
-    st.markdown(
-        "<div style='border: 2px solid #00ffff; padding: 15px; border-radius: 15px; background-color: #161b22;'>"
-        "<h3 style='color: white; text-align: center;'>Klasifikasi Tren Saham</h3></div>",
-        unsafe_allow_html=True
-    )
-    # Ambil future_prices dari session state
-    future_prices = st.session_state.get('future_prices', None)
-    if future_prices is None:
-        st.info("Prediksi harga masa depan belum dibuat. Silakan lakukan prediksi terlebih dahulu di halaman 'Prediksi Harga'.")
-    else:
-        visualize_classification(future_prices)
+    visualize_classification(future_prices)
 
 elif page == "Tentang Model":
     st.markdown(
-        "<div style='border: 2px solid #999999; padding: 15px; border-radius: 15px; background-color: #161b22;'>"
-        "<h3 style='color: white; text-align: center;'>Tentang Model</h3></div>",
-        unsafe_allow_html=True
+        """
+        <div style='border: 2px solid #c792ea; padding: 15px; border-radius: 15px; background-color: #161b22;'>
+        <h3 style='color: white;'>Tentang Model</h3>
+        <p style='color: white;'>
+        - Harga saham AAPL dari 2015 sampai 2024<br>
+        - Tujuan: Memprediksi harga saham masa depan dan klasifikasi tren (Buy/Hold/Sell)<br>
+        - Evaluasi model menggunakan MSE, RMSE, MAE, dan R² Score<br>
+        - Visualisasi interaktif menggunakan Streamlit dan Matplotlib
+        </p>
+        </div>
+        """, unsafe_allow_html=True
     )
-    st.markdown("""
-    - Model: Long Short-Term Memory (LSTM) dengan 2 layer LSTM dan Dropout
-    - Data: Harga saham AAPL dari 2015 sampai 2024
-    - Tujuan: Memprediksi harga saham masa depan dan klasifikasi tren (Buy/Hold/Sell)
-    - Evaluasi model menggunakan MSE, RMSE, MAE, dan R² Score
-    - Visualisasi interaktif menggunakan Streamlit dan Matplotlib
-    """)
-
