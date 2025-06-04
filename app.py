@@ -8,6 +8,7 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from tensorflow.keras.models import Sequential, load_model
 from tensorflow.keras.layers import Dense, LSTM, Dropout
+from streamlit_option_menu import option_menu
 
 # ---------- Config ----------
 st.set_page_config(page_title="Prediksi Saham AAPL", layout="wide")
@@ -15,10 +16,20 @@ st.set_page_config(page_title="Prediksi Saham AAPL", layout="wide")
 st.markdown("<h1 style='text-align: center; color: white;'>📈 Prediksi Saham AAPL dengan LSTM</h1>", unsafe_allow_html=True)
 
 # ---------- Sidebar Navigation ----------
-menu = st.sidebar.radio(
-    "Navigasi",
-    ["📁 Dataset", "📊 Visualisasi Historis", "🧠 Evaluasi Model", "🔮 Prediksi Harga", "📈 Klasifikasi Tren", "ℹ️ Tentang Model"]
-)
+with st.sidebar:
+    selected = option_menu(
+        "Navigasi",
+        ["Dataset", "Visualisasi Historis", "Evaluasi Model", "Prediksi Harga", "Klasifikasi Tren", "Tentang Model"],
+        icons=["folder", "bar-chart", "cpu", "graph-up", "diagram-3", "info-circle"],
+        menu_icon="cast",
+        default_index=0,
+        styles={
+            "container": {"padding": "5px", "background-color": "#0d1117"},
+            "icon": {"color": "#00ff9f", "font-size": "20px"},
+            "nav-link": {"color": "white", "font-size": "16px", "text-align": "left"},
+            "nav-link-selected": {"background-color": "#1f2937"},
+        }
+    )
 
 # ---------- Load & Cache ----------
 @st.cache_data
@@ -85,11 +96,11 @@ predicted_prices = scaler.inverse_transform(predicted)
 real_prices = scaler.inverse_transform(y_test.reshape(-1, 1))
 
 # ---------- Menu Logic ----------
-if menu == "📁 Dataset":
-    st.markdown("### 📁 Dataset AAPL (2015-2024)")
+if selected == "Dataset":
+    st.markdown("### 📁 Dataset AAPL (2015–2024)")
     st.dataframe(df.tail(100))
 
-elif menu == "📊 Visualisasi Historis":
+elif selected == "Visualisasi Historis":
     st.markdown("### 📊 Visualisasi Data Historis")
     col1, col2 = st.columns(2)
     start = col1.date_input("Tanggal Mulai", value=df.index.min().date(), min_value=df.index.min().date(), max_value=df.index.max().date())
@@ -108,7 +119,7 @@ elif menu == "📊 Visualisasi Historis":
             spine.set_edgecolor('white')
         st.pyplot(fig)
 
-elif menu == "🧠 Evaluasi Model":
+elif selected == "Evaluasi Model":
     st.markdown("### 🧠 Evaluasi Model")
     mse = mean_squared_error(real_prices, predicted_prices)
     rmse = np.sqrt(mse)
@@ -133,9 +144,8 @@ elif menu == "🧠 Evaluasi Model":
         spine.set_edgecolor('white')
     st.pyplot(fig)
 
-elif menu == "🔮 Prediksi Harga":
+elif selected == "Prediksi Harga":
     st.markdown("### 🔮 Prediksi Harga Masa Depan")
-
     mode = st.radio("Pilih mode prediksi:", ["Gunakan Slider Hari", "Gunakan Tanggal Spesifik"])
     if mode == "Gunakan Slider Hari":
         n_days = st.slider("Jumlah hari ke depan:", 30, 90, 60)
@@ -173,7 +183,7 @@ elif menu == "🔮 Prediksi Harga":
         spine.set_edgecolor('white')
     st.pyplot(fig)
 
-elif menu == "📈 Klasifikasi Tren":
+elif selected == "Klasifikasi Tren":
     st.markdown("### 📈 Klasifikasi Tren Berdasarkan Prediksi")
     future_prices = scaler.inverse_transform(np.array(future_preds).reshape(-1, 1))
     trend_stats = calculate_classification_stats(future_prices.flatten())
@@ -190,7 +200,7 @@ elif menu == "📈 Klasifikasi Tren":
     ax.set_title("📌 Distribusi Klasifikasi", color='white', fontsize=16)
     st.pyplot(fig)
 
-elif menu == "ℹ️ Tentang Model":
+elif selected == "Tentang Model":
     st.markdown("### ℹ️ Tentang Model")
     st.markdown("""
     - Model: LSTM (Long Short-Term Memory)
