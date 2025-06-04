@@ -162,38 +162,39 @@ def visualize_classification(future_prices):
 
     labels = ['Buy', 'Hold', 'Sell']
     sizes = [trend_stats.get(label, 0) for label in labels]
-    colors = ['#4caf50', '#ffeb3b', '#f44336']
-    explode = (0.1, 0, 0)  # highlight "Buy" sedikit keluar
+    colors = ['#4caf50', '#ffeb3b', '#f44336']  # Hijau, Kuning, Merah
+    explode = (0.1, 0, 0)  # highlight "Buy"
 
     col1, col2 = st.columns(2)
 
     with col1:
         fig4, ax4 = plt.subplots(figsize=(6, 6), facecolor='#161b22')
-        ax4.pie(
+        wedges, texts, autotexts = ax4.pie(
             sizes, labels=labels, autopct='%1.1f%%', startangle=140,
             colors=colors, explode=explode, textprops={'color': 'white', 'fontsize': 14}
         )
         ax4.set_title("📌 Presentase Klasifikasi (Pie Chart)", color='white', fontsize=16)
+        for text in texts + autotexts:
+            text.set_color('white')
         st.pyplot(fig4)
 
     with col2:
         fig5, ax5 = plt.subplots(figsize=(6, 6), facecolor='#161b22')
-        bars = ax5.bar(labels, sizes, color=colors)
+        bars = ax5.bar(labels, sizes, color=colors, edgecolor='white', linewidth=1.5)
         ax5.set_ylim(0, 100)
         ax5.set_ylabel("Persentase (%)", color='white', fontsize=12)
         ax5.set_title("📌 Presentase Klasifikasi (Bar Chart)", color='white', fontsize=16)
-        ax5.tick_params(axis='x', colors='white')
-        ax5.tick_params(axis='y', colors='white')
+        ax5.tick_params(axis='x', colors='white', labelsize=14)
+        ax5.tick_params(axis='y', colors='white', labelsize=12)
         for spine in ax5.spines.values():
             spine.set_edgecolor('white')
-        # Menambahkan label persentase di atas tiap bar
+        # Label nilai di atas bar
         for bar in bars:
             height = bar.get_height()
-            ax5.text(bar.get_x() + bar.get_width()/2., height + 1, f'{height:.1f}%', ha='center', color='white', fontsize=12)
+            ax5.text(bar.get_x() + bar.get_width()/2., height + 2, f'{height:.1f}%', ha='center', color='white', fontsize=14)
         st.pyplot(fig5)
 
     st.markdown("</div>", unsafe_allow_html=True)
-
 
 # ---------- Sidebar Navigasi ----------
 st.sidebar.title("📚 Navigasi")
