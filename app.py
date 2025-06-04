@@ -80,7 +80,109 @@ predicted = model.predict(X_test)
 predicted_prices = scaler.inverse_transform(predicted)
 real_prices = scaler.inverse_transform(y_test.reshape(-1, 1))
 
-# ---------- Model Evaluation Section ----------
+# ===================== Bagian Visualisasi Data Historis =====================
+def visualize_historical_data(df):
+    st.markdown(
+        "<div style='border: 2px solid #00ff9f; padding: 15px; border-radius: 15px; margin-bottom: 20px; background-color: #161b22;'>"
+        "<h2 style='color: white; text-align: center;'>📂 Visualisasi Data Historis</h2>",
+        unsafe_allow_html=True
+    )
+
+    col4, col5 = st.columns(2)
+    start_date_hist = col4.date_input("Tanggal Mulai", min_value=df.index.min().date(), max_value=df.index.max().date(), value=df.index.min().date())
+    end_date_hist = col5.date_input("Tanggal Akhir", min_value=df.index.min().date(), max_value=df.index.max().date(), value=df.index.max().date())
+
+    if start_date_hist > end_date_hist:
+        st.error("❌ Tanggal mulai harus sebelum tanggal akhir.")
+    else:
+        df_filtered = df.loc[start_date_hist:end_date_hist]
+        fig2, ax2 = plt.subplots(figsize=(14, 5))
+        fig2.patch.set_facecolor('#0d1117')
+        ax2.set_facecolor('#0d1117')
+        ax2.plot(df_filtered.index, df_filtered['Close'], color='#00ff9f')
+        ax2.set_title(f"Data Historis Saham AAPL ({start_date_hist} s.d. {end_date_hist})", color='white')
+        ax2.tick_params(colors='white')
+        for spine in ax2.spines.values():
+            spine.set_edgecolor('white')
+        st.pyplot(fig2)
+    st.markdown("</div>", unsafe_allow_html=True)
+
+# ===================== Bagian Prediksi Harga Masa Depan & Visualisasi =====================
+def predict_and_visualize_future_prices(model, data_scaled, scaler, df):
+    st.markdown(
+        "<div style='border: 2px solid #bb86fc; padding: 15px; border-radius: 15px; margin-bottom: 20px; background-color: #161b22;'>"
+        "<h2 style='color: white; text-align: center;'>🧙‍♂️ Prediksi Saham Masa Depan</h2>",
+        unsafe_allow_html=True
+    )
+
+    mode = st.radio("Pilih mode prediksi:", ["Gunakan Slider Hari", "Gunakan Tanggal Spesifik"])
+
+    if mode == "Gunakan Slider Hari":
+        n_days = st.slider("Pilih jumlah hari ke depan untuk prediksi:", 30, 90, 60)
+        start_date = df.index.max() + pd.Timedelta(days=1)
+        end_date = start_date + pd.Timedelta(days=n_days - 1)
+    else:
+        col_t1, col_t2 = st.columns(2)
+        min_pred_date = df.index.max().date() + pd.Timedelta(days=1)
+        start_date = col_t1.date_input("Tanggal Mulai Prediksi", min_value=min_pred_date, value=min_pred_date)
+        end_date = col_t2.date_input("Tanggal Akhir Prediksi", min_value=min_pred_date + pd.Timedelta(days=1), value=min_pred_date + pd.Timedelta(days=60))
+        if start_date > end_date:
+            st.error("❌ Tanggal mulai prediksi harus sebelum tanggal akhir.")
+            st.stop()
+        n_days = (end_date - start_date).days + 1
+
+    last_sequence = data_scaled[-60:]
+    future_input = last_sequence.reshape(1, 60, 1)
+    future_preds = []
+
+    for _ in range(n_days):
+        next_val = model.predict(future_input, verbose=0)[0][0]
+        future_preds.append(next_val)
+        future_input = np.append(future_input[:, 1:, :], [[[next_val]]], axis=1)
+
+    future_prices = scaler.inverse_transform(np.array(future_preds).reshape(-1, 1))
+    future_dates = pd.date_range(start=start_date, periods=n_days)
+
+    fig3, ax3 = plt.subplots(figsize=(14, 5))
+    fig3.patch.set_facecolor('#0d1117')
+    ax3.set_facecolor('#0d1117')
+    ax3.plot(future_dates, future_prices, label=f"Prediksi {n_days} Hari", color='#bb86fc')
+    ax3.set_title(f"Prediksi Harga Saham AAPL ({future_dates[0].date()} s.d. {future_dates[-1].date()})", color='white')
+    ax3.tick_params(colors='white')
+    ax3.legend(facecolor='#161b22', edgecolor='white', labelcolor='white')
+    for spine in ax3.spines.values():
+        spine.set_edgecolor('white')
+    st.pyplot(fig3)
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    return future_prices
+
+# ===================== Bagian Visualisasi Klasifikasi Tren =====================
+def visualize_classification(future_prices):
+    st.markdown(
+        "<div style='border: 2px solid #00ffff; padding: 15px; border-radius: 15px; background-color: #161b22;'>"
+        "<h2 style='color: white; text-align: center;'>📊 Persentase Klasifikasi pada Rentang Waktu Dipilih</h2>",
+        unsafe_allow_html=True
+    )
+
+    trend_stats = calculate_classification_stats(future_prices.flatten())
+    
+    # Pie chart untuk visualisasi klasifikasi
+    labels = ['Buy', 'Hold', 'Sell']
+    sizes = [trend_stats.get(label, 0) for label in labels]
+    colors = ['#4caf50', '#ffeb3b', '#f44336']
+    explode = (0.1, 0, 0)  # highlight "Buy" sedikit keluar
+
+    fig4, ax4 = plt.subplots(figsize=(6, 6), facecolor='#161b22')
+    ax4.pie(
+        sizes, labels=labels, autopct='%1.1f%%', startangle=140,
+        colors=colors, explode=explode, textprops={'color':'white', 'fontsize':14}
+    )
+    ax4.set_title("📌 Presentase Klasifikasi di Prediksi Waktu yang Dipilih", color='white', fontsize=16)
+    st.pyplot(fig4)
+    st.markdown("</div>", unsafe_allow_html=True)
+
+# ===================== Main Layout =====================
 col1, col2, col3 = st.columns([2, 2, 6])
 
 with col1:
@@ -131,93 +233,11 @@ with col3:
     st.pyplot(fig1)
     st.markdown("</div>", unsafe_allow_html=True)
 
-# ---------- Historical Visualization Section ----------
-st.markdown(
-    "<div style='border: 2px solid #00ff9f; padding: 15px; border-radius: 15px; margin-bottom: 20px; background-color: #161b22;'>"
-    "<h2 style='color: white; text-align: center;'>📂 Visualisasi Data Historis</h2>",
-    unsafe_allow_html=True
-)
+# Tampilkan bagian visualisasi data historis
+visualize_historical_data(df)
 
-col4, col5 = st.columns(2)
-start_date_hist = col4.date_input("Tanggal Mulai", min_value=df.index.min().date(), max_value=df.index.max().date(), value=df.index.min().date())
-end_date_hist = col5.date_input("Tanggal Akhir", min_value=df.index.min().date(), max_value=df.index.max().date(), value=df.index.max().date())
+# Tampilkan bagian prediksi harga masa depan dan visualisasinya, simpan hasil prediksi untuk klasifikasi
+future_prices = predict_and_visualize_future_prices(model, data_scaled, scaler, df)
 
-if start_date_hist > end_date_hist:
-    st.error("❌ Tanggal mulai harus sebelum tanggal akhir.")
-else:
-    df_filtered = df.loc[start_date_hist:end_date_hist]
-    fig2, ax2 = plt.subplots(figsize=(14, 5))
-    fig2.patch.set_facecolor('#0d1117')
-    ax2.set_facecolor('#0d1117')
-    ax2.plot(df_filtered.index, df_filtered['Close'], color='#00ff9f')
-    ax2.set_title(f"Data Historis Saham AAPL ({start_date_hist} s.d. {end_date_hist})", color='white')
-    ax2.tick_params(colors='white')
-    for spine in ax2.spines.values():
-        spine.set_edgecolor('white')
-    st.pyplot(fig2)
-st.markdown("</div>", unsafe_allow_html=True)
-
-# ---------- Future Prediction Section ----------
-st.markdown(
-    "<div style='border: 2px solid #bb86fc; padding: 15px; border-radius: 15px; margin-bottom: 20px; background-color: #161b22;'>"
-    "<h2 style='color: white; text-align: center;'>🧙‍♂️ Prediksi Saham Masa Depan</h2>",
-    unsafe_allow_html=True
-)
-
-mode = st.radio("Pilih mode prediksi:", ["Gunakan Slider Hari", "Gunakan Tanggal Spesifik"])
-
-if mode == "Gunakan Slider Hari":
-    n_days = st.slider("Pilih jumlah hari ke depan untuk prediksi:", 30, 90, 60)
-    start_date = df.index.max() + pd.Timedelta(days=1)
-    end_date = start_date + pd.Timedelta(days=n_days - 1)
-else:
-    col_t1, col_t2 = st.columns(2)
-    min_pred_date = df.index.max().date() + pd.Timedelta(days=1)
-    start_date = col_t1.date_input("Tanggal Mulai Prediksi", min_value=min_pred_date, value=min_pred_date)
-    end_date = col_t2.date_input("Tanggal Akhir Prediksi", min_value=min_pred_date + pd.Timedelta(days=1), value=min_pred_date + pd.Timedelta(days=60))
-    if start_date > end_date:
-        st.error("❌ Tanggal mulai prediksi harus sebelum tanggal akhir.")
-        st.stop()
-    n_days = (end_date - start_date).days + 1
-
-last_sequence = data_scaled[-60:]
-future_input = last_sequence.reshape(1, 60, 1)
-future_preds = []
-
-for _ in range(n_days):
-    next_val = model.predict(future_input, verbose=0)[0][0]
-    future_preds.append(next_val)
-    future_input = np.append(future_input[:, 1:, :], [[[next_val]]], axis=1)
-
-future_prices = scaler.inverse_transform(np.array(future_preds).reshape(-1, 1))
-future_dates = pd.date_range(start=start_date, periods=n_days)
-
-fig3, ax3 = plt.subplots(figsize=(14, 5))
-fig3.patch.set_facecolor('#0d1117')
-ax3.set_facecolor('#0d1117')
-ax3.plot(future_dates, future_prices, label=f"Prediksi {n_days} Hari", color='#bb86fc')
-ax3.set_title(f"Prediksi Harga Saham AAPL ({future_dates[0].date()} s.d. {future_dates[-1].date()})", color='white')
-ax3.tick_params(colors='white')
-ax3.legend(facecolor='#161b22', edgecolor='white', labelcolor='white')
-for spine in ax3.spines.values():
-    spine.set_edgecolor('white')
-st.pyplot(fig3)
-st.markdown("</div>", unsafe_allow_html=True)
-
-# ---------- Trend Classification Section ----------
-st.markdown(
-    "<div style='border: 2px solid #00ffff; padding: 15px; border-radius: 15px; background-color: #161b22;'>"
-    "<h2 style='color: white; text-align: center;'>📊 Persentase Klasifikasi pada Rentang Waktu Dipilih</h2>",
-    unsafe_allow_html=True
-)
-
-trend_stats = calculate_classification_stats(future_prices.flatten())
-trend_df = pd.DataFrame([trend_stats], columns=["Buy", "Hold", "Sell"]).round(2).astype(str) + '%'
-
-st.markdown(
-    "<div style='border: 2px solid #00ffff; padding: 15px; border-radius: 15px; background-color: #0d1117;'>"
-    "<h4 style='color: white; text-align: center;'>📌 Presentase Klasifikasi di Prediksi Waktu yang Dipilih</h4>",
-    unsafe_allow_html=True
-)
-st.table(trend_df)
-st.markdown("</div>", unsafe_allow_html=True)
+# Tampilkan bagian klasifikasi tren dengan visualisasi pie chart
+visualize_classification(future_prices)
