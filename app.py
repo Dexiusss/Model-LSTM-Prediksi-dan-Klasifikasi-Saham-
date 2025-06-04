@@ -153,33 +153,41 @@ def predict_and_visualize_future_prices(model, data_scaled, scaler, df):
 
 def visualize_classification(future_prices):
     st.markdown(
-        "<div style='border: 2px solid #00ffff; padding: 15px; border-radius: 15px; background-color: #161b22;'>"
-        "<h2 style='color: white; text-align: center;'>📊 Persentase Klasifikasi pada Rentang Waktu Dipilih</h2>",
-        unsafe_allow_html=True
+        """
+        <div style='border: 2px solid #0abde3; padding: 15px; border-radius: 15px; background-color: rgba(0,0,0,0.6);'>
+        <h2 style='color: white; text-align: center;'>📊 Persentase Klasifikasi pada Rentang Waktu Dipilih</h2>
+        </div>
+        """, unsafe_allow_html=True
     )
 
     trend_stats = calculate_classification_stats(future_prices.flatten())
 
     labels = ['Buy', 'Hold', 'Sell']
     sizes = [trend_stats.get(label, 0) for label in labels]
-    colors = ['#4caf50', '#ffeb3b', '#f44336']  # Hijau, Kuning, Merah
+
+    # Warna aksen yang natural tapi cerah untuk dark mode Streamlit
+    colors = ['#00cc96', '#ffa600', '#ef553b']  # hijau mint, oranye, merah koral
     explode = (0.1, 0, 0)  # highlight "Buy"
 
     col1, col2 = st.columns(2)
 
     with col1:
-        fig4, ax4 = plt.subplots(figsize=(6, 6), facecolor='#161b22')
+        fig4, ax4 = plt.subplots(figsize=(6, 6))
+        fig4.patch.set_alpha(0)  # transparan sesuai dark mode
         wedges, texts, autotexts = ax4.pie(
             sizes, labels=labels, autopct='%1.1f%%', startangle=140,
-            colors=colors, explode=explode, textprops={'color': 'white', 'fontsize': 14}
+            colors=colors, explode=explode,
+            textprops={'color': 'white', 'fontsize': 14}
         )
+        ax4.set_facecolor('none')  # transparan
         ax4.set_title("📌 Presentase Klasifikasi (Pie Chart)", color='white', fontsize=16)
         for text in texts + autotexts:
             text.set_color('white')
         st.pyplot(fig4)
 
     with col2:
-        fig5, ax5 = plt.subplots(figsize=(6, 6), facecolor='#161b22')
+        fig5, ax5 = plt.subplots(figsize=(6, 6))
+        fig5.patch.set_alpha(0)
         bars = ax5.bar(labels, sizes, color=colors, edgecolor='white', linewidth=1.5)
         ax5.set_ylim(0, 100)
         ax5.set_ylabel("Persentase (%)", color='white', fontsize=12)
@@ -188,10 +196,10 @@ def visualize_classification(future_prices):
         ax5.tick_params(axis='y', colors='white', labelsize=12)
         for spine in ax5.spines.values():
             spine.set_edgecolor('white')
-        # Label nilai di atas bar
         for bar in bars:
             height = bar.get_height()
             ax5.text(bar.get_x() + bar.get_width()/2., height + 2, f'{height:.1f}%', ha='center', color='white', fontsize=14)
+        ax5.set_facecolor('none')
         st.pyplot(fig5)
 
     st.markdown("</div>", unsafe_allow_html=True)
