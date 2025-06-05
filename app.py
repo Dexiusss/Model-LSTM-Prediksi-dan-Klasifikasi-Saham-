@@ -12,7 +12,7 @@ import datetime
 
 # ---------- Page Config ----------
 st.set_page_config(
-    page_title="Prediksi Saham AAPL | Kelompok 27",
+    page_title="Prediksi Saham AAPL | Kelompok 25",
     page_icon="📈",
     layout="wide",
     initial_sidebar_state="expanded"
