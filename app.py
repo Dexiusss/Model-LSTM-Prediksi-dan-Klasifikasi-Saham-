@@ -168,7 +168,7 @@ st.sidebar.markdown("""
 * Ricky Mario Butar-Butar (1305223077)
 * Christiana Naida Putri (1305223071)
 * Muhammad Arif Faisal (1305223070)
-* Celenie Patrisse Stephania (1305223069)
+* Celenie Patrisse S (1305223069)
 """)
 st.sidebar.markdown("---")
 st.sidebar.title("🧭 MENU NAVIGASI")
