@@ -488,9 +488,9 @@ elif selected_page == "Tentang Proyek":
             <li>Pra-pemrosesan: Data diskalakan menggunakan MinMaxScaler ke rentang (0,1).</li>
         </ul>
 
-        <h4 style='color: {accent_color_2};'>🧠 Model LSTM (dari <code>model.h5</code> jika ada):</h4>
+        <h4 style='color: {accent_color_2};'>🧠 Model LSTM:</h4>
         <ul style='color: #c9d1d9;'>
-            <li>Arsitektur (jika dilatih baru):
+            <li>Arsitektur:
                 <ul>
                     <li>Layer LSTM pertama dengan 50 unit, `return_sequences=True`.</li>
                     <li>Layer Dropout dengan rate 0.2.</li>
