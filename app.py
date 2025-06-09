@@ -162,7 +162,7 @@ model_global = None
 st.sidebar.markdown("---")
 st.sidebar.title("🏢 Informasi Kelompok")
 st.sidebar.markdown("""
-**Nomor Kelompok: 27**
+**Nomor Kelompok: 25**
 
 **Anggota Kelompok:**
 * Ricky Mario Butar-Butar (1305223077)
