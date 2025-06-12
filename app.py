@@ -535,7 +535,7 @@ elif selected_page == "Tentang Proyek":
 st.markdown("---")
 st.markdown(
     "<p style='text-align: center; color: #8892b0; font-size: 0.9em;'>"
-    "Dashboard Prediksi Saham AAPL © 2024-2025 Kelompok 27. Dibuat dengan Streamlit."
+    "Dashboard Prediksi Saham AAPL © 2024-2025 Kelompok 25. Dibuat dengan Streamlit."
     "</p>",
     unsafe_allow_html=True
 )
